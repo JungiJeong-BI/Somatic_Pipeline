@@ -24,13 +24,11 @@ tmp = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/fastq/out/temp/"
 
 print(read1)
 print(read2)
-
 reference_genome =  "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/gatkgoogle/Homo_sapiens_assembly38.fasta"
 dbsnp = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/gatkgoogle/Homo_sapiens_assembly38.dbsnp138.vcf"
 mills = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/gatkgoogle/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"
 g1000phase1_snp = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/gatkgoogle/1000G_phase1.snps.high_confidence.hg38.vcf.gz"
 g1000phase1_indel = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/gatkgoogle/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"
-g1000phase3 = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/gatkgoogle/1000G.phase3.integrated.sites_only.no_MATCHED_REV.hg38.vcf"
 
 # if you want to define library info on bam file, edit it!
 library_name = "SGI"
@@ -76,12 +74,15 @@ def preprocessing(samplename, outputfolder):
         "--tmp-dir", tmp, "--spark-master local[" + thread + "]"])
     recal = " ".join(["gatk BaseRecalibrator -I", "".join([outputfolder,"/",samplename,"_aligned.trimmomatic.bwa.rg.sorted.dedup.bam"]),
         "--known-sites", dbsnp, "--known-sites", mills, "--known-sites", g1000phase1_snp, "--known-sites", g1000phase1_indel,
-        "--known-sites", g1000phase3, "-R", reference_genome,
+        "-R", reference_genome,
         "-O", "".join([outputfolder,"/",samplename,"_aligned.trimmomatic.bwa.rg.sorted.dedup.recal.table"])])
     applyrecal = " ".join(["gatk ApplyBQSR -I", "".join([outputfolder,"/",samplename,"_aligned.trimmomatic.bwa.rg.sorted.dedup.bam"]),
         "-R", reference_genome, "--bqsr-recal-file", "".join([outputfolder,"/",samplename,"_aligned.trimmomatic.bwa.rg.sorted.dedup.recal.table"]),
         "-O", "".join([outputfolder,"/",samplename,"_aligned.trimmomatic.bwa.rg.sorted.dedup.recal.bam"])])
     return [bwamapping, addbamrg, sortbam, dedup, recal, applyrecal]
+
+
+
 
 print(p_read1)
 if p_read1!=None and p_read2!=None:
