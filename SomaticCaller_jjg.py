@@ -30,6 +30,8 @@ mills = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/gatkgoogle/Mills_and_1000G_go
 g1000phase1_snp = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/gatkgoogle/1000G_phase1.snps.high_confidence.hg38.vcf.gz"
 g1000phase1_indel = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/gatkgoogle/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"
 
+g1000_pon = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/gatkgoogle/1000g_pon.hg38.vcf.gz"
+gnomad = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/gatkgoogle/af-only-gnomad.hg38.vcf.gz"
 # if you want to define library info on bam file, edit it!
 library_name = "SGI"
 platform = "Illumina"
@@ -82,7 +84,33 @@ def preprocessing(samplename, outputfolder):
     return [bwamapping, addbamrg, sortbam, dedup, recal, applyrecal]
 
 
+"gatk Mutect2 -R {ref_dir} -I {input.recal_bam} -O {output.vcf_file} --germline-resource " + gnomad + " --panel-of-normals {params.pm}"
 
+def paired_vaf_call_recalibration(samplename, paired_samplename, outputfolder):
+    mutect2_paired_call = " ".join(["gatk Mutect2 -R", reference_genome, "-I",
+        "".join([outputfolder,"/",samplename,"_aligned.trimmomatic.bwa.rg.sorted.dedup.recal.bam"]), "-I",
+        "".join([outputfolder,"/",paired_samplename,"_aligned.trimmomatic.bwa.rg.sorted.dedup.recal.bam"]), "-normal", 
+        paired_samplename, "--germline-resource", gnomad, "--panel-of-normals", g1000_pon, "-O",
+        "".join([outputfolder,"/",samplename,"_aligned.trimmomatic.bwa.rg.sorted.dedup.recal.vcf.gz"])])
+    variant_recal_pileup = " ".join(["gatk GetPileupSummaries -I",
+        "".join([outputfolder,"/",samplename,"_aligned.trimmomatic.bwa.rg.sorted.dedup.recal.bam"]),
+        "-L", gnomad, "-O", "".join([outputfolder,"/",samplename,"-Analysis-aligned.rg.sorted.dedup.recal.Pileup.table"]),
+        "-V", gnomad])
+    variant_recal_contam = " ".join(["gatk CalculateContamination -I",
+        "".join([outputfolder,"/",samplename,"-Analysis-aligned.rg.sorted.dedup.recal.Pileup.table"]),
+        "-O", "".join([outputfolder,"/",samplename,"-Analysis-aligned.rg.sorted.dedup.recal.Pileup.contam.table"])])
+    F1R2_source = " ".join(["gatk CollectF1R2Counts -I", "".join([outputfolder,"/",samplename,"_aligned.trimmomatic.bwa.rg.sorted.dedup.recal.bam"]),
+        "-O", "".join([outputfolder,"/",samplename,"-Analysis-aligned.rg.sorted.dedup.recal.F1R2.tar.gz"]),
+        "-R", reference_genome])
+    F1R2_model = " ".join(["gatk LearnReadOrientationModel -I",
+        "".join([outputfolder,"/",samplename,"-Analysis-aligned.rg.sorted.dedup.recal.F1R2.tar.gz"]),
+        "-O", "".join([outputfolder,"/",samplename,"-Analysis-aligned.rg.sorted.dedup.recal.F1R2.model.tar.gz"])])
+    filt_mutect2 = " ".join(["gatk FilterMutectCalls -R", reference_genome, "-V",
+        "".join([outputfolder,"/",samplename,"_aligned.trimmomatic.bwa.rg.sorted.dedup.recal.vcf.gz"]),
+        "-O", "".join([outputfolder,"/",samplename,"_aligned.trimmomatic.bwa.rg.sorted.dedup.recal.filtered.vcf.gz"]),
+        "--contamination-table", "".join([outputfolder,"/",samplename,"-Analysis-aligned.rg.sorted.dedup.recal.Pileup.contam.table"]),
+        "-ob-priors", "".join([outputfolder,"/",samplename,"-Analysis-aligned.rg.sorted.dedup.recal.F1R2.model.tar.gz"])])
+    return [mutect2_paired_call, variant_recal_pileup, variant_recal_contam, F1R2_source, F1R2_model, filt_mutect2]
 
 print(p_read1)
 if p_read1!=None and p_read2!=None:
@@ -92,8 +120,21 @@ if p_read1!=None and p_read2!=None:
         Process(i_cmd)
 else:
     paired_sample = getsamplename(p_read1)
+    trimming(p_read1, p_read2, paired_sample , output)
+    for i_cmd in preprocessing(paired_sample, output):
+        Process(i_cmd)
 
 
+paired_vaf_call_recalibration(sample, paired_sample, output)
+
+
+read1 = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/fastq/SF1402900-T_1.fastq.gz"
+read2 = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/fastq/SF1402900-T_2.fastq.gz"
+p_read1 = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/fastq/SF1402900-B_1.fastq.gz"
+p_read2 = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/fastq/SF1402900-B_2.fastq.gz"
+
+thread = str("4")
+output = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/fastq/out/"
 
 
 
