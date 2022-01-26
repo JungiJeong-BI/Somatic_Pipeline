@@ -24,14 +24,16 @@ tmp = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/fastq/out/temp/"
 
 print(read1)
 print(read2)
-reference_genome =  "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/gatkgoogle/Homo_sapiens_assembly38.fasta"
-dbsnp = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/gatkgoogle/Homo_sapiens_assembly38.dbsnp138.vcf"
-mills = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/gatkgoogle/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"
-g1000phase1_snp = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/gatkgoogle/1000G_phase1.snps.high_confidence.hg38.vcf.gz"
-g1000phase1_indel = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/gatkgoogle/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"
+db_path = os.path.dirname(os.path.realpath(__file__)) + "./DB/"
 
-g1000_pon = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/gatkgoogle/1000g_pon.hg38.vcf.gz"
-gnomad = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/gatkgoogle/af-only-gnomad.hg38.vcf.gz"
+reference_genome =  db_path + "/Homo_sapiens_assembly38.fasta"
+#dbsnp = db_path + "Homo_sapiens_assembly38.dbsnp138.vcf"
+mills = db_path + "Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"
+g1000phase1_snp = db_path + "1000G_phase1.snps.high_confidence.hg38.vcf.gz"
+g1000phase1_indel = db_path + "Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"
+
+g1000_pon = db_path + "1000g_pon.hg38.vcf.gz"
+gnomad = db_path + "af-only-gnomad.hg38.vcf.gz"
 # if you want to define library info on bam file, edit it!
 library_name = "SGI"
 platform = "Illumina"
@@ -57,7 +59,7 @@ def trimming(read1, read2, samplename, outputfolder):
         read1, read2,
         "".join([outputfolder,"/",samplename,"_R1.trimmed.paired.fastq.gz"]), "".join([outputfolder,"/",samplename,"_R1.trimmed.unpaired.fastq.gz"]),
         "".join([outputfolder,"/",samplename,"_R2.trimmed.paired.fastq.gz"]), "".join([outputfolder,"/",samplename,"_R2.trimmed.unpaired.fastq.gz"]),
-        "ILLUMINACLIP:/BiO2/users/jjg/tools/Somatic_Pipeline/TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:80"])
+        "ILLUMINACLIP:"+db_path+"/TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:80"])
     print(trimmomatic)
     Process(trimmomatic)
 
