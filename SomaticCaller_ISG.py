@@ -19,8 +19,8 @@ read1 = Options.read1; read2 = Options.read2; p_read1=Options.p_read1; p_read2=O
 
 print(read1)
 print(read2)
-db_path = os.path.dirname(os.path.realpath(__file__)) + "./DB/"
-db_path = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/gatkgoogle/"
+db_path = os.path.dirname(os.path.realpath(__file__)) + "/DB/"
+#db_path = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/gatkgoogle/"
 
 reference_genome =  db_path + "/Homo_sapiens_assembly38.fasta"
 #dbsnp = db_path + "Homo_sapiens_assembly38.dbsnp138.vcf"
