@@ -17,16 +17,9 @@ Options = Get_Options.parse_args()
 read1 = Options.read1; read2 = Options.read2; p_read1=Options.p_read1; p_read2=Options.p_read2; thread=str(Options.thread); output=Options.output
 
 
-
-maxcpu = 40
-
-outputlog_path = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/fastq/out/temp/log.log"
-out = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/fastq/out/"
-tmp = "/BiO2/users/jjg/tools/Somatic_Pipeline_DB/fastq/out/temp/"
-
 print(read1)
 print(read2)
-db_path = os.path.dirname(os.path.realpath(__file__)) + "./DB/"
+db_path = os.path.dirname(os.path.realpath(__file__)) + "/DB/"
 
 reference_genome =  db_path + "/Homo_sapiens_assembly38.fasta"
 #dbsnp = db_path + "Homo_sapiens_assembly38.dbsnp138.vcf"
@@ -40,7 +33,7 @@ gnomad = db_path + "af-only-gnomad.hg38.vcf.gz"
 library_name = "SGI"
 platform = "Illumina"
 platform_barcode = "jjg_Dev"
-
+tmp = db_path+"tmp/"
 
 
 def Process(cmd):
@@ -79,7 +72,7 @@ def preprocessing(samplename, outputfolder):
         "-M", "".join([outputfolder,"/",samplename,"_aligned.trimmomatic.bwa.rg.sorted.dedup.metrics"]),
         "--tmp-dir", tmp, "--spark-master local[" + thread + "]"])
     recal = " ".join(["gatk BaseRecalibrator -I", "".join([outputfolder,"/",samplename,"_aligned.trimmomatic.bwa.rg.sorted.dedup.bam"]),
-        "--known-sites", dbsnp, "--known-sites", mills, "--known-sites", g1000phase1_snp, "--known-sites", g1000phase1_indel,
+        "--known-sites", mills, "--known-sites", g1000phase1_snp, "--known-sites", g1000phase1_indel,
         "-R", reference_genome,
         "-O", "".join([outputfolder,"/",samplename,"_aligned.trimmomatic.bwa.rg.sorted.dedup.recal.table"])])
     applyrecal = " ".join(["gatk ApplyBQSR -I", "".join([outputfolder,"/",samplename,"_aligned.trimmomatic.bwa.rg.sorted.dedup.bam"]),
@@ -88,18 +81,17 @@ def preprocessing(samplename, outputfolder):
     return [bwamapping, addbamrg, sortbam, dedup, recal, applyrecal]
 
 
-"gatk Mutect2 -R {ref_dir} -I {input.recal_bam} -O {output.vcf_file} --germline-resource " + gnomad + " --panel-of-normals {params.pm}"
 
 def paired_vaf_call_recalibration(samplename, paired_samplename, outputfolder):
     mutect2_paired_call = " ".join(["gatk Mutect2 -R", reference_genome, "-I",
         "".join([outputfolder,"/",samplename,"_aligned.trimmomatic.bwa.rg.sorted.dedup.recal.bam"]), "-I",
         "".join([outputfolder,"/",paired_samplename,"_aligned.trimmomatic.bwa.rg.sorted.dedup.recal.bam"]), "-normal", 
-        paired_samplename, "--germline-resource", gnomad, "--panel-of-normals", g1000_pon, "-O",
+        paired_samplename, "-O",
         "".join([outputfolder,"/",samplename,"_aligned.trimmomatic.bwa.rg.sorted.dedup.recal.vcf.gz"])])
     variant_recal_pileup = " ".join(["gatk GetPileupSummaries -I",
         "".join([outputfolder,"/",samplename,"_aligned.trimmomatic.bwa.rg.sorted.dedup.recal.bam"]),
-        "-L", gnomad, "-O", "".join([outputfolder,"/",samplename,"-Analysis-aligned.rg.sorted.dedup.recal.Pileup.table"]),
-        "-V", gnomad])
+        "-L", mills, "-O", "".join([outputfolder,"/",samplename,"-Analysis-aligned.rg.sorted.dedup.recal.Pileup.table"]),
+        "-V", mills])
     variant_recal_contam = " ".join(["gatk CalculateContamination -I",
         "".join([outputfolder,"/",samplename,"-Analysis-aligned.rg.sorted.dedup.recal.Pileup.table"]),
         "-O", "".join([outputfolder,"/",samplename,"-Analysis-aligned.rg.sorted.dedup.recal.Pileup.contam.table"])])
@@ -116,42 +108,20 @@ def paired_vaf_call_recalibration(samplename, paired_samplename, outputfolder):
         "-ob-priors", "".join([outputfolder,"/",samplename,"-Analysis-aligned.rg.sorted.dedup.recal.F1R2.model.tar.gz"])])
     return [mutect2_paired_call, variant_recal_pileup, variant_recal_contam, F1R2_source, F1R2_model, filt_mutect2]
 
-print(p_read1)
-if p_read1!=None and p_read2!=None:
-    sample = getsamplename(read1)
-    #trimming(read1, read2, sample , output)
-    for i_cmd in preprocessing(sample, output):
-        Process(i_cmd)
-else:
-    paired_sample = getsamplename(p_read1)
-    trimming(p_read1, p_read2, paired_sample , output)
-    for i_cmd in preprocessing(paired_sample, output):
-        Process(i_cmd)
+Process("mkdir" + tmp)
+sample = getsamplename(read1)
+trimming(read1, read2, sample , output)
+for i_cmd in preprocessing(sample, output):
+    Process(i_cmd)
+print(read1)
+paired_sample = getsamplename(p_read1)
+trimming(p_read1, p_read2, paired_sample , output)
+for i_cmd in preprocessing(paired_sample, output):
+    Process(i_cmd)
 
 
-paired_vaf_call_recalibration(sample, paired_sample, output)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+for i_cmd in paired_vaf_call_recalibration(sample, paired_sample, output):
+    Process(i_cmd)
 
 
 
