@@ -120,9 +120,24 @@ for i_cmd in preprocessing(paired_sample, output):
     Process(i_cmd)
 
 
+print(p_read1)
+if p_read1!=None and p_read2!=None:
+    sample = getsamplename(read1)
+    trimming(read1, read2, sample , output)
+    for i_cmd in preprocessing(sample, output):
+        Process(i_cmd)
+else:
+    paired_sample = getsamplename(p_read1)
+    trimming(p_read1, p_read2, paired_sample , output)
+    for i_cmd in preprocessing(paired_sample, output):
+        Process(i_cmd)
+
+
+paired_vaf_call_recalibration(sample, paired_sample, output)
+
+
 for i_cmd in paired_vaf_call_recalibration(sample, paired_sample, output):
     Process(i_cmd)
-
 
 
 
